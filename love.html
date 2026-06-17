@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>约会表白全套弹窗</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "微软雅黑", sans-serif;
+        }
+        body {
+            width: 100vw;
+            height: 100vh;
+            background: #ffd6e4;
+            overflow: hidden;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        /* 飘落爱心通用样式 */
+        .heart {
+            position: fixed;
+            pointer-events: none;
+            color: #ff88bb;
+            font-size: 20px;
+            animation: fall linear infinite;
+            opacity: 0.85;
+            z-index: 5;
+            mix-blend-mode: screen;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.08));
+        }
+        @keyframes fall {
+            0% {
+                transform: translateY(-30px) rotate(0deg);
+            }
+            100% {
+                transform: translateY(100vh) rotate(360deg);
+            }
+        }
+        /* 分步面板通用样式：全屏居中显示，默认隐藏 */
+        .step {
+            display: none;
+            position: absolute;
+            inset: 0;
+            text-align: center;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 99;
+            padding: 20px;
+        }
+        .step.active {
+            display: flex;
+        }
+        /* 顶部卡通图片 */
+        .top-img {
+            width: 220px;
+            margin-bottom: 16px;
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .local-img {
+            width: 220px;
+            max-width: 60vw;
+            height: auto;
+            display: block;
+            margin: 0 auto 16px auto;
+            border-radius: 12px;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+        }
+        .img-placeholder {
+            width: 220px;
+            height: 140px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px auto;
+            background: #fff2f7;
+            border: 2px dashed #ffb8d0;
+            border-radius: 12px;
+            color: #ff6699;
+            font-size: 28px;
+        }
+        .cn-title {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 12px;
+        }
+        /* 白色圆角弹窗容器 */
+        .card {
+            background: #fff;
+            border: 4px solid #ff77aa;
+            border-radius: 24px;
+            padding: 24px 28px;
+            position: relative;
+            width: min(640px, 92%);
+            max-width: 92vw;
+            box-sizing: border-box;
+        }
+        /* step1 与 step3 的卡片宽度调整，使首/第三页视觉更优 */
+        #step1 .card { width: min(520px, 90%); }
+        #step3 .card { width: min(680px, 95%); }
+        .text-content {
+            font-size: 30px;
+            color: #442222;
+            margin-bottom: 30px;
+            line-height: 1.4;
+        }
+        /* 按钮组 */
+        .btn-row {
+            display: flex;
+            gap: 0;
+            border-radius: 999px;
+            overflow: hidden;
+            justify-content: center;
+            position: relative;
+        }
+        button {
+            width: 140px;
+            height: 60px;
+            border: none;
+            font-size: 26px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        #noBtn {
+            background: #ffc6d8;
+            color: #774455;
+            position: relative;
+        }
+        .pink-btn {
+            background: #ff6699;
+            color: white;
+            border-radius: 999px;
+            margin-top: 20px;
+        }
+        .pink-btn:hover {
+            transform: scale(1.05);
+        }
+        /* 日期输入框 */
+        .date-input-box {
+            border: 2px solid #ff77aa;
+            border-radius: 14px;
+            padding: 16px;
+            margin: 10px 0;
+            font-size: 26px;
+            width: 100%;
+            text-align: center;
+            cursor: pointer;
+        }
+        /* 美食选择网格 */
+        .food-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin: 20px 0;
+        }
+        .food-item {
+            background: #fff2f7;
+            border: 2px solid #ffb8d0;
+            border-radius: 16px;
+            font-size: 50px;
+            padding: 16px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .food-item.active {
+            background: #ffd6e4;
+            border-color: #ff6699;
+        }
+        /* 饭后活动网格样式 */
+        .activity-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin: 20px 0;
+        }
+        .activity-item {
+            background: #fff2f7;
+            border: 2px solid #ffb8d0;
+            border-radius: 16px;
+            padding: 16px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .activity-icon {
+            font-size: 50px;
+            display: block;
+        }
+        .activity-name {
+            font-size: 18px;
+            color: #ff4477;
+            margin-top: 8px;
+            display: none;
+        }
+        .activity-item.active {
+            background: #ffd6e4;
+            border-color: #ff6699;
+        }
+        .activity-item.active .activity-name {
+            display: block;
+        }
+        /* 弹窗遮罩通用样式 */
+        .mask {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0,0,0,0.6);
+            align-items: center;
+            justify-content: center;
+            z-index: 999;
+            backdrop-filter: blur(6px);
+        }
+        .pop-box {
+            background: #ffd6e4;
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+        }
+        .calendar-day {
+            display: inline-block;
+            width: 50px;
+            height: 50px;
+            line-height: 50px;
+            font-size: 24px;
+            margin: 4px;
+            cursor: pointer;
+            border-radius: 8px;
+        }
+        .calendar-day:hover {
+            background: #ff6699;
+            color: white;
+        }
+        .calendar-day.selected {
+            background: #4499ff;
+            color: white;
+        }
+        .time-col {
+            display: inline-block;
+            margin: 0 15px;
+        }
+        .time-num {
+            width: 60px;
+            height: 50px;
+            line-height: 50px;
+            font-size: 24px;
+            background: #fff;
+            border-radius: 8px;
+            margin: 6px 0;
+            cursor: pointer;
+        }
+        .time-num.selected {
+            background: #ff6699;
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <!-- 步骤1：史莱克初始表白页面 -->
+    <div class="step active" id="step1">
+        <div class="cn-title">你愿意和我约会吗？</div>
+        <div class="card">
+            <div class="text-content">你愿意和我一起约会吗？🥺</div>
+            <div class="btn-row">
+                <button type="button" id="noBtn">拒绝</button>
+                <button type="button" class="pink-btn" onclick="nextStep(2)">同意</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 步骤2：点击同意后惊喜页面 -->
+    <div class="step" id="step2">
+        <div class="card">
+            <div class="text-content">你居然真的同意了？🥹<br>我本来都做好被拒绝的准备了</div>
+            <button type="button" class="pink-btn" onclick="nextStep(3)">下一步 💖</button>
+        </div>
+    </div>
+
+    <!-- 步骤3：选择日期时间页面（可点击打开日历/时间选择） -->
+    <div class="step" id="step3">
+        <div class="cn-title">你哪天有空？</div>
+        <div class="card">
+            <div class="text-content" style="font-size:28px;">约会时间 📅</div>
+            <div style="text-align:left; font-size:22px; color:#ff4477; margin:8px 0;">选择日期</div>
+            <div class="date-input-box" id="showDate" onclick="openDateTimeModal()">2026年5月28日</div>
+
+            <div style="text-align:left; font-size:22px; color:#ff4477; margin:16px 0 8px;">选择时间</div>
+            <div class="date-input-box" id="showTime" onclick="openDateTimeModal()">下午6点</div>
+
+            <button type="button" class="pink-btn" onclick="nextStep(4)">确认选择日期</button>
+        </div>
+    </div>
+
+    <!-- 统一日期时间选择弹窗（datetime-local） -->
+    <div class="mask" id="dateTimeModal">
+        <div class="pop-box" style="max-width:520px;">
+            <div style="font-size:24px; margin-bottom:12px; text-align:center;">选择约会日期与时间</div>
+            <div style="display:flex;gap:12px;align-items:center;justify-content:center;margin:12px 0;">
+                <input id="dtInput" type="datetime-local" step="60" style="font-size:18px;padding:10px;border-radius:10px;border:2px solid #ffb8d0;min-width:260px;" />
+            </div>
+            <div style="text-align:center;margin-top:8px;">
+                <button type="button" class="pink-btn" onclick="applyDateTime()">确认选择</button>
+                <button type="button" class="pink-btn" style="background:#ffc6d8;color:#774455;margin-left:8px;" onclick="closeDateTimeModal()">取消</button>
+            </div>
+        </div>
+    </div>
+
+    
+
+    <!-- 步骤4：选择想吃的美食 -->
+    <div class="step" id="step4">
+        <div class="cn-title">你想吃什么晚餐？</div>
+        <div class="card">
+            <div class="text-content" style="font-size:28px;">晚餐选择 🥰</div>
+            <div class="food-grid">
+                <div class="food-item" data-food="汉堡">🍔</div>
+                <div class="food-item" data-food="三明治">🥪</div>
+                <div class="food-item" data-food="意面">🍝</div>
+                <div class="food-item" data-food="塔可">🌮</div>
+                <div class="food-item" data-food="披萨">🍕</div>
+            </div>
+            <button type="button" class="pink-btn" id="foodNextBtn" disabled style="opacity:0.5;">请先选择一项食物</button>
+        </div>
+    </div>
+    <!-- 步骤5：饭后活动选择页面 -->
+    <div class="step" id="step5">
+        <div class="cn-title">吃完饭后我们去干嘛？</div>
+        <div class="card">
+            <div class="text-content" style="font-size:28px;">饭后活动 🎉</div>
+            <div class="activity-grid">
+                <div class="activity-item" data-activity="看电影">
+                    <span class="activity-icon">🎬</span>
+                    <span class="activity-name">看电影</span>
+                </div>
+                <div class="activity-item" data-activity="睡觉">
+                    <span class="activity-icon">😴</span>
+                    <span class="activity-name">睡觉</span>
+                </div>
+                <div class="activity-item" data-activity="开车兜风">
+                    <span class="activity-icon">🚗</span>
+                    <span class="activity-name">开车兜风</span>
+                </div>
+                <div class="activity-item" data-activity="继续吃">
+                    <span class="activity-icon">🍰</span>
+                    <span class="activity-name">继续吃</span>
+                </div>
+                <div class="activity-item" data-activity="玩游戏">
+                    <span class="activity-icon">🎮</span>
+                    <span class="activity-name">玩游戏</span>
+                </div>
+                <div class="activity-item" data-activity="逛街">
+                    <span class="activity-icon">🛍️</span>
+                    <span class="activity-name">逛街</span>
+                </div>
+            </div>
+            <button type="button" class="pink-btn" id="activityNextBtn" disabled style="opacity:0.5;">请先选择一项活动</button>
+        </div>
+    </div>
+
+    <!-- 步骤6：最终约会通知页面 -->
+    <div class="step" id="step6">
+        <div class="cn-title">我知道了！我的女孩，晚上准备好，我来接你。</div>
+        <div class="card">
+            <div class="text-content" style="font-size:30px;">我都安排好啦 💖<br>准时等你出门 🚗</div>
+            <div style="font-size:22px; margin-top:16px; line-height:1.8;" id="resultText">
+                📅 约会日期：2026年5月28日<br>
+                ⏰ 约会时间：下午6点<br>
+                🍽 晚餐：汉堡<br>
+                ✨ 饭后项目：看电影
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 全局存储用户选择
+        let userSelect = {
+            date: "2026年5月28日",
+            hour: 18,
+            minute: 0,
+            timeStr: "下午6点",
+            food: "汉堡",
+            activity: "看电影"
+        };
+        const noBtn = document.getElementById('noBtn');
+        // 全屏可移动范围（相对于视口）
+        const avoidPadding = 16;
+        // 将按钮设置为绝对定位并放到视口上方
+        noBtn.style.position = 'fixed';
+        noBtn.style.zIndex = 100;
+        noBtn.style.left = '10%';
+        noBtn.style.top = '70%';
+
+        // 封装按钮全屏躲闪函数：向视口内随机跳动并保证不超出边界
+        function moveBtn() {
+            const vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
+            const vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0);
+            const btnRect = noBtn.getBoundingClientRect();
+            const maxX = vw - btnRect.width - avoidPadding;
+            const maxY = vh - btnRect.height - avoidPadding;
+            const randomX = Math.floor(Math.random() * (maxX - avoidPadding)) + avoidPadding;
+            const randomY = Math.floor(Math.random() * (maxY - avoidPadding)) + avoidPadding;
+            noBtn.style.left = randomX + 'px';
+            noBtn.style.top = randomY + 'px';
+        }
+
+        // 悬浮/触碰时触发躲闪，节流避免过快
+        let lastMove = 0;
+        function tryMove() {
+            const now = Date.now();
+            if (now - lastMove > 120) {
+                moveBtn();
+                lastMove = now;
+            }
+        }
+        noBtn.addEventListener('mouseover', tryMove);
+        noBtn.addEventListener('touchstart', tryMove);
+        noBtn.addEventListener('click', tryMove);
+
+        // 切换分步面板
+        function nextStep(num) {
+            document.querySelectorAll('.step').forEach(step => step.classList.remove('active'));
+            document.getElementById(`step${num}`).classList.add('active');
+        }
+
+        // ========== 日期选择 ==========
+        // 统一日期时间选择器（使用 datetime-local）
+        const dateTimeModal = document.getElementById('dateTimeModal');
+        const dtInput = document.getElementById('dtInput');
+        const showDateDom = document.getElementById('showDate');
+        const showTimeDom = document.getElementById('showTime');
+
+        function openDateTimeModal() {
+            // 初始化为当前 userSelect 值或当前时间
+            let cur = new Date();
+            if (userSelect.date) {
+                // 解析 userSelect.date 简单支持 'YYYY年M月D日' 格式
+                const m = userSelect.date.match(/(\d{4})年(\d{1,2})月(\d{1,2})日/);
+                if (m) {
+                    cur = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), userSelect.hour || 18, userSelect.minute || 0);
+                }
+            }
+            // 设置最小值为当前时刻，防止选择过去时间
+            const now = new Date();
+            const pad = (n) => n.toString().padStart(2, '0');
+            const toLocalString = (d) => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+            dtInput.min = toLocalString(now);
+            dtInput.value = toLocalString(cur);
+            console.log('openDateTimeModal called, initializing dtInput value', dtInput);
+            dateTimeModal.style.display = 'flex';
+            try { dtInput.focus(); } catch(e) { console.warn(e); }
+        }
+
+        function closeDateTimeModal() {
+            console.log('closeDateTimeModal called');
+            dateTimeModal.style.display = 'none';
+        }
+
+        function applyDateTime() {
+            const v = dtInput.value;
+            console.log('applyDateTime value=', v);
+            if (!v) return;
+            const selected = new Date(v);
+            const now = new Date();
+            if (selected < now) {
+                alert('请选择不早于当前时间的日期与时间');
+                return;
+            }
+            // 更新 userSelect
+            userSelect.date = `${selected.getFullYear()}年${selected.getMonth()+1}月${selected.getDate()}日`;
+            userSelect.hour = selected.getHours();
+            userSelect.minute = selected.getMinutes();
+            // 格式化显示
+            let period = userSelect.hour >= 12 ? '下午' : '上午';
+            let h = userSelect.hour % 12 === 0 ? 12 : userSelect.hour % 12;
+            userSelect.timeStr = `${period}${h}点${userSelect.minute > 0 ? userSelect.minute + '分' : ''}`;
+            showDateDom.innerText = userSelect.date;
+            showTimeDom.innerText = userSelect.timeStr;
+            closeDateTimeModal();
+        }
+
+        // 确保内联 onclick 可访问这些函数（某些环境下作用域可能不同）
+        window.openDateTimeModal = openDateTimeModal;
+        window.closeDateTimeModal = closeDateTimeModal;
+        window.applyDateTime = applyDateTime;
+
+        // 旧的时间选择逻辑已移除，使用统一的 datetime-local 弹窗
+
+        // 美食选择交互
+        const foodItems = document.querySelectorAll('.food-item');
+        const foodNextBtn = document.getElementById('foodNextBtn');
+        foodItems.forEach(item => {
+            item.onclick = () => {
+                foodItems.forEach(i=>i.classList.remove('active'));
+                item.classList.add('active');
+                userSelect.food = item.dataset.food;
+                foodNextBtn.disabled = false;
+                foodNextBtn.style.opacity = 1;
+                foodNextBtn.innerText = "确认前往下一步";
+                foodNextBtn.onclick = () => {
+                    nextStep(5);
+                }
+            }
+        })
+
+        // 饭后活动选择交互
+        const activityItems = document.querySelectorAll('.activity-item');
+        const activityNextBtn = document.getElementById('activityNextBtn');
+        activityItems.forEach(item => {
+            item.onclick = () => {
+                activityItems.forEach(i=>i.classList.remove('active'));
+                item.classList.add('active');
+                userSelect.activity = item.dataset.activity;
+                activityNextBtn.disabled = false;
+                activityNextBtn.style.opacity = 1;
+                activityNextBtn.innerText = "确认提交";
+                activityNextBtn.onclick = () => {
+                    nextStep(6);
+                    // 更新最终结果文字
+                    document.getElementById('resultText').innerHTML = `
+                        📅 约会日期：${userSelect.date}<br>
+                        ⏰ 约会时间：${userSelect.timeStr}<br>
+                        🍽 晚餐：${userSelect.food}<br>
+                        ✨ 饭后项目：${userSelect.activity}
+                    `;
+                }
+            }
+        })
+
+        // 全屏高密度爱心飘落，所有页面持续生效
+        function createHeart() {
+            const heart = document.createElement('div');
+            heart.classList.add('heart');
+            heart.innerHTML = '♥';
+            heart.style.left = Math.random() * 100 + 'vw';
+            const fallTime = Math.random() * 6 + 3;
+            heart.style.animationDuration = fallTime + 's';
+            heart.style.fontSize = Math.random() * 28 + 8 + 'px';
+            document.body.appendChild(heart);
+            setTimeout(()=>{
+                heart.remove();
+            }, fallTime * 1000)
+        }
+        // 降低生成频率，避免性能问题
+        const heartInterval = setInterval(createHeart, 220);
+        // 可在页面不可见时暂停生成
+        document.addEventListener('visibilitychange', ()=>{
+            if (document.hidden) clearInterval(heartInterval);
+        });
+    </script>
+</body>
+</html>
